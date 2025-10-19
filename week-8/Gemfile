@@ -1,0 +1,62 @@
+source 'https://rubygems.org'
+git_source(:github) { |repo| "https://github.com/#{repo}.git" }
+
+ruby '3.2.0'
+
+# Core Rails gems
+gem 'rails', '~> 7.0.0'
+gem 'pg', '~> 1.1'
+gem 'puma', '~> 5.0'
+gem 'bootsnap', '>= 1.4.4', require: false
+
+# Background job processing
+gem 'sidekiq', '~> 7.0'
+gem 'sidekiq-cron', '~> 1.2'
+gem 'sidekiq-scheduler', '~> 4.0'
+
+# Caching and performance
+gem 'redis', '~> 5.0'
+gem 'redis-rails', '~> 5.0'
+gem 'connection_pool', '~> 2.4'
+
+# API and serialization
+gem 'jbuilder', '~> 2.7'
+gem 'rack-cors', '~> 2.0'
+
+# Authentication and authorization
+gem 'devise', '~> 4.9'
+gem 'pundit', '~> 2.3'
+
+# Monitoring and logging
+gem 'sentry-ruby', '~> 5.0'
+gem 'sentry-rails', '~> 5.0'
+gem 'lograge', '~> 1.0'
+
+# File processing and generation
+gem 'prawn', '~> 2.4'
+gem 'mini_magick', '~> 4.12'
+
+# Utilities
+gem 'dotenv-rails', '~> 2.8'
+gem 'faker', '~> 3.0'
+gem 'kaminari', '~> 1.2'
+
+group :development, :test do
+  gem 'byebug', platforms: [:mri, :mingw, :x64_mingw]
+  gem 'rspec-rails', '~> 6.0'
+  gem 'factory_bot_rails', '~> 6.2'
+  gem 'faker', '~> 3.0'
+end
+
+group :development do
+  gem 'listen', '~> 3.3'
+  gem 'spring'
+  gem 'spring-watcher-listen', '~> 2.0.0'
+  gem 'annotate', '~> 3.2'
+end
+
+group :test do
+  gem 'shoulda-matchers', '~> 5.3'
+  gem 'webmock', '~> 3.18'
+  gem 'vcr', '~> 6.1'
+end
