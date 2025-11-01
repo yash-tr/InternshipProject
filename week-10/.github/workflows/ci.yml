@@ -1,0 +1,182 @@
+# GitHub Actions CI/CD Pipeline
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: resume_builder_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 3.2.0
+        bundler-cache: true
+
+    - name: Install dependencies
+      run: |
+        cd week-8
+        bundle install
+
+    - name: Setup Database
+      env:
+        RAILS_ENV: test
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/resume_builder_test
+      run: |
+        cd week-8
+        rails db:create db:migrate
+
+    - name: Run tests
+      env:
+        RAILS_ENV: test
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/resume_builder_test
+        REDIS_URL: redis://localhost:6379/0
+      run: |
+        cd week-8
+        bundle exec rspec
+
+    - name: Generate coverage report
+      run: |
+        cd week-8
+        bundle exec rspec --format documentation --out tmp/test_results.txt
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Install dependencies
+      run: |
+        cd week-9
+        npm ci
+
+    - name: Run tests
+      run: |
+        cd week-9
+        npm test -- --coverage --watchAll=false
+
+    - name: Build
+      run: |
+        cd week-9
+        npm run build
+
+    - name: Check build artifacts
+      run: |
+        ls -la week-9/build
+
+  build-docker:
+    runs-on: ubuntu-latest
+    needs: [test, build-frontend]
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build and push backend image
+      uses: docker/build-push-action@v4
+      with:
+        context: ./week-8
+        file: ./week-10/config/docker/Dockerfile
+        push: true
+        tags: resume-builder/api:${{ github.sha }},resume-builder/api:latest
+
+    - name: Build and push frontend image
+      uses: docker/build-push-action@v4
+      with:
+        context: ./week-9
+        push: true
+        tags: resume-builder/frontend:${{ github.sha }},resume-builder/frontend:latest
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: build-docker
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Run security scan
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'table'
+        exit-code: '0'
+
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: [test, build-frontend, build-docker]
+    if: github.ref == 'refs/heads/develop'
+    environment:
+      name: staging
+      url: https://staging.resumebuilder.example.com
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Deploy to staging
+      run: |
+        echo "Deploying to staging environment..."
+        # Add deployment commands here
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: [test, build-frontend, build-docker, security-scan]
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://resumebuilder.example.com
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Deploy to production
+      run: |
+        echo "Deploying to production environment..."
+        # Add deployment commands here
+

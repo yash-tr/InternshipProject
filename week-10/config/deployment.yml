@@ -1,0 +1,160 @@
+# Deployment Configuration for AWS/Kubernetes
+# Infrastructure as Code for production deployment
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resume-builder-api
+  labels:
+    app: resume-builder
+    tier: backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: resume-builder
+      tier: backend
+  template:
+    metadata:
+      labels:
+        app: resume-builder
+        tier: backend
+    spec:
+      containers:
+      - name: rails
+        image: resume-builder/api:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: RAILS_ENV
+          value: "production"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: resume-builder-secrets
+              key: database-url
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: resume-builder-secrets
+              key: redis-url
+        - name: SECRET_KEY_BASE
+          valueFrom:
+            secretKeyRef:
+              name: resume-builder-secrets
+              key: secret-key-base
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      - name: sidekiq
+        image: resume-builder/api:latest
+        command: ["bundle", "exec", "sidekiq"]
+        env:
+        - name: RAILS_ENV
+          value: "production"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: resume-builder-secrets
+              key: database-url
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: resume-builder-secrets
+              key: redis-url
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: resume-builder-api-service
+spec:
+  selector:
+    app: resume-builder
+    tier: backend
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 3000
+  type: LoadBalancer
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resume-builder-frontend
+  labels:
+    app: resume-builder
+    tier: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: resume-builder
+      tier: frontend
+  template:
+    metadata:
+      labels:
+        app: resume-builder
+        tier: frontend
+    spec:
+      containers:
+      - name: react
+        image: resume-builder/frontend:latest
+        ports:
+        - containerPort: 80
+        env:
+        - name: REACT_APP_API_URL
+          value: "https://api.resumebuilder.example.com/api/v1"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: resume-builder-config
+data:
+  NODE_ENV: "production"
+  RAILS_ENV: "production"
+  TIME_ZONE: "UTC"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: resume-builder-secrets
+type: Opaque
+stringData:
+  database-url: "postgresql://user:password@db:5432/resume_builder_production"
+  redis-url: "redis://redis:6379/0"
+  secret-key-base: "CHANGE_ME_IN_PRODUCTION"
+

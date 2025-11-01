@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+vendor/bundle/
+
+# Build outputs
+build/
+dist/
+*.log
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+.rspec_cache/
+test_results.txt
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Docker
+docker-compose.override.yml
+
+# Secrets
+secrets/
+*.key
+*.pem
+
+# Uploads
+storage/
+public/uploads/
+
+# Database
+*.sqlite3
+*.sqlite3-journal
+
+# Logs
+log/
+*.log
+
