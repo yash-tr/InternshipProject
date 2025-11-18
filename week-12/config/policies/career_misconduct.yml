@@ -1,0 +1,18 @@
+version: 3
+rules:
+  - id: spam_posting
+    description: "Bulk posting of fraudulent or spam jobs"
+    action: block
+    cooldown_hours: 720
+  - id: harassment
+    description: "Harassment or abusive conduct in career spaces"
+    action: block
+    cooldown_hours: 168
+  - id: low_risk
+    description: "Minor violations, keep read-only access"
+    action: restrict
+    cooldown_hours: 24
+review:
+  escalation_channel: "#trust-and-safety"
+  sla_hours: 12
+
