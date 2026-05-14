@@ -1,4 +1,4 @@
-# AI Calling Agent MVP
+# CRM AI Calling Agent
 
 A production-ready AI voice assistant that handles inbound and outbound calls with seamless Salesforce CRM integration.
 
@@ -120,6 +120,3 @@ See deployment documentation for platform-specific instructions.
 - Comprehensive audit logging
 - Security headers and CORS protection
 
-## License
-
-MIT License - see LICENSE file for details.
